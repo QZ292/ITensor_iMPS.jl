@@ -21,11 +21,25 @@ function canon_iteration(A::ITensor,R::ITensor)
     factor = (Rn * delta(inds(Rn)[1], inds(Rn)[2]))[1] #/dim(inds(Rn)[1])
     Rn /= factor
     AL = factor * AL
-    frobenius = sqrt(sum((Rn - R) .^ 2))/sqrt(sum((R) .^ 2))
+    frobenius = norm(Rn - R)/norm(R)
     return AL, Rn, frobenius
 end
 # Generate canonical form random iMPS
-function canonical_initialize(χ::Int, D::Int, name::String = "a"; tol::Float64 = 1e-6, itr::Int = 30, printlog::Bool = true, indent::Int64 = 0)
+function canonical_initialize(χ::Int, D::Int, name::String = "a"; tol::Float64 = 1e-6, itr::Int = 30, mode::String = "default", indent::Int64 = 0)
+    # output
+    if mode == "min"
+        println(repeat(" ", indent), "Random canonical iMPS \"",name,"\" w/ bond dim = ",χ, " and physical dim = ",D, " generated.")
+        println(" ")
+    elseif mode == "default"
+        println(repeat(" ", indent), "Random canonical iMPS \"",name,"\" w/ bond dim = ",χ, " and physical dim = ",D, " generated.")
+        println(" ")
+    elseif mode == "debug"
+        println(repeat(" ", indent), "Generating random canonical iMPS \"",name,"\" w/ bond dim = ",χ, " and physical dim = ",D)
+    else
+        println("ERROR@ mode: \"$mode\"")
+        println(" ")
+        return iMPS_canonical(), true
+    end
     # initialization
     MPS_AL = nothing
     MPS_AR_rev = nothing
@@ -71,19 +85,36 @@ function canonical_initialize(χ::Int, D::Int, name::String = "a"; tol::Float64 
     mpsA.left = MPS_AL
     mpsA.center = MPS_C
     mpsA.right = MPS_AR
-    #test normailzation
-    println(repeat(" ", indent), "Generating random canonical iMPS \"",name,"\" w/ bond dim = ",χ, " and physical dim = ",D)
-    errordetect = canon_test(mpsA, [2,1]; printlog = printlog, indent = indent+2, tol = tol)
-    if printlog
+    # output
+    if mode == "min"
+        return mpsA
+    elseif mode == "default"
+        errordetect = canon_test(mpsA, [2,1]; printlog = false, tol = tol)
+    elseif mode == "debug"
+        errordetect = canon_test(mpsA, [2,1]; printlog = true, indent = indent+2, tol = tol)
         println(" ")
     end
     return mpsA, errordetect
 end
 # Generate canonical form given translational invariant iMPS
-function canonicalize(MPS_A::ITensor; tol::Float64 = 1e-6, itr::Int = 30, printlog::Bool = true, indent::Int64 = 0)
+function canonicalize(MPS_A::ITensor; tol::Float64 = 1e-6, itr::Int = 30, mode::String = "default", indent::Int64 = 0)
     # size
     χ = size(MPS_A)[1]
     @assert size(MPS_A)[1] == size(MPS_A)[3]
+    # output
+    if mode == "min"
+        println(repeat(" ", indent), "Given iMPS w/ bond dim = ",χ, " and physical dim = ",size(MPS_A)[2]," canonicalized")
+        println(" ")
+    elseif mode == "default"
+        println(repeat(" ", indent), "Given iMPS w/ bond dim = ",χ, " and physical dim = ",size(MPS_A)[2]," canonicalized")
+        println(" ")
+    elseif mode == "debug"
+        println(repeat(" ", indent), "Canonicalizing given iMPS w/ bond dim = ",χ, " and physical dim = ",size(MPS_A)[2]) 
+    else
+        println("ERROR@ mode: \"$mode\"")
+        println(" ")
+        return iMPS_canonical(), true
+    end
     # initialization
     MPS_AL = nothing
     MPS_AR_rev = nothing
@@ -127,11 +158,69 @@ function canonicalize(MPS_A::ITensor; tol::Float64 = 1e-6, itr::Int = 30, printl
     mpsA.left = MPS_AL
     mpsA.center = MPS_C
     mpsA.right = MPS_AR
-    #test normailzation
-    println(repeat(" ", indent), "Canonicalizing given iMPS w/ bond dim = ",χ, " and physical dim = ",size(MPS_A)[2])
-    errordetect = canon_test(mpsA, [2,1]; printlog = printlog, indent = indent+2, tol = tol)
-    if printlog
+    # output
+    if mode == "min"
+        return mpsA
+    elseif mode == "default"
+        errordetect = canon_test(mpsA, [2,1]; printlog = false, tol = tol)
+    elseif mode == "debug"
+        errordetect = canon_test(mpsA, [2,1]; printlog = true, indent = indent+2, tol = tol)
         println(" ")
     end
     return mpsA, errordetect
+end
+# Remove gauge ambiguity
+function canonical_gauge(a::iMPS_canonical; tol::Float64 = 1e-6, mode::String = "default", indent::Int64 = 0)
+    # output
+    if mode == "min"
+        println(repeat(" ", indent), "Gauge ambiguity of given iMPS removed.")
+        println(" ")
+    elseif mode == "default"
+        println(repeat(" ", indent), "Gauge ambiguity of given iMPS removed.")
+        println(" ")
+    elseif mode == "debug"
+        println(repeat(" ", indent), "Removing gauge ambiguity of given iMPS.")
+    else
+        println("ERROR@ mode: \"$mode\"")
+        println(" ")
+        return a, true
+    end
+    # indices
+    χ = size(a.left)[1]
+    iG = [
+        Index(χ, "g1"),    #1
+        Index(χ, "g2"),    #2
+        Index(χ, "gt1"),   #3
+        Index(χ, "gt2")    #4
+    ]
+    # diagonalize center
+    U, S, Vt = LinearAlgebra.LAPACK.gesvd!('A', 'A', copy(matrix(a.center)))
+    Ut = adjoint(U)
+    V = adjoint(Vt)
+    U = ITensor(U,(iG[1],iG[2]))
+    Vt = ITensor(Vt,(iG[3],iG[4]))
+    Ut = ITensor(Ut,(iG[3],iG[4]))
+    V = ITensor(V,(iG[1],iG[2]))
+    # update C
+    an = iMPS_canonical()
+    an.center = ITensor(diagm(S),inds(a.center))
+    # update A_L
+    an.left = Ut * a.left * delta(iG[4],inds(a.left)[1])
+    an.left = an.left * U *delta(inds(an.left)[3],iG[1])
+    # update A_R
+    an.right = Vt * a.right * delta(iG[4],inds(a.right)[1])
+    an.right = an.right * V * delta(inds(an.right)[3],iG[1])
+    # rename indices
+    an.left = replaceinds(an.left, (inds(an.left)=>inds(a.left)))
+    an.right = replaceinds(an.right, (inds(an.right)=>inds(a.right)))
+    # output
+    if mode == "min"
+        return an
+    elseif mode == "default"
+        errordetect = ITensor_iMPS.canon_test(an, [2,3,1]; printlog = false, tol = tol)
+    elseif mode == "debug"
+        errordetect = ITensor_iMPS.canon_test(an, [2,3,1]; printlog = true, indent = indent+2, tol = tol)
+        println(" ")
+    end
+    return an, errordetect
 end
