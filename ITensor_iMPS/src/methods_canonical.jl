@@ -6,9 +6,9 @@ function initialize_x(χ::Int, D::Int, name::String = "A")
         Index(χ, "$name 3"),
     ]
     tensorX = randn(χ,D,χ).+3
+    normX = sqrt(sum(abs2, tensorX))
+    tensorX /= normX
     tensorX = ITensor(tensorX,iX)
-    factor = sqrt( (tensorX * tensorX)[1] )
-    tensorX /= factor
     return tensorX
 end
 # canonicalize iMPS
