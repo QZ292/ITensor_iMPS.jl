@@ -142,112 +142,131 @@ function biortho_gauge(a::iMPS_canonical, b::iMPS_canonical; printlog::Bool = tr
     return an, bn
 end
 # Initialize two biorthonormal iMPS
-function biorthonormal_initialize(χ::Int64, D::Int64; tol::Float64 = 1e-6, itr::Int = 1, printlog::Bool = true, debug::Bool = false, indent::Int64 = 0)
-    # χ: bond dimison of MPS
-    # D: bond dimison of transfer operator; physical dimension
-    errorflag = false
-    flag = printlog||debug
-    if flag
-        println(repeat(" ", indent), "Generating random biorthonormal iMPS \"a\", \"b\" w/ bond dim = ",χ, " and physical dim = ",D)
+function biorthonormal_initialize(χ::Int64, D::Int64; tol::Float64 = 1e-6, itr::Int = 1, mode::String = "default", indent::Int64 = 0)
+    # output
+    if mode=="min" || mode=="default"
+        a,erra = canonical_initialize(χ,D,"a";tol=tol,indent=indent)
+        b,errb = canonical_initialize(χ,D,"b";tol=tol,indent=indent)
+        if erra
+            println("ERROR@ generate iMPS \"a\"")
+            return iMPS_canonical(),iMPS_canonical(),true
+        elseif errb
+            println("ERROR@ generate iMPS \"b\"")
+            return iMPS_canonical(),iMPS_canonical(),true
+        else
+            nothing
+        end
+    elseif mode == "debug"
+        println(repeat(" ", indent), "Generating random biorthonormal iMPS pair w/ bond dim = $χ and physical dim = $D.")
         println(" ")
-    end
-    # generate 2 MPS
-    a,erra = canonical_initialize(χ,D,"a";tol=tol,printlog=flag,indent=indent+2)
-    if erra
-        println("ERROR@ generate iMPS \"a\"")
-        return iMPS_canonical(),iMPS_canonical(),true
-    end
-    b,errb = canonical_initialize(χ,D,"b";tol=tol,printlog=flag,indent=indent+2)
-    if errb
-        println("ERROR@ generate iMPS \"b\"")
+        a,erra = canonical_initialize(χ,D,"a";tol=tol,mode="debug",indent=indent+2)
+        b,errb = canonical_initialize(χ,D,"b";tol=tol,mode="debug",indent=indent+2)
+        if erra
+            println("ERROR@ generate iMPS \"a\"")
+            return iMPS_canonical(),iMPS_canonical(),true
+        elseif errb
+            println("ERROR@ generate iMPS \"b\"")
+            return iMPS_canonical(),iMPS_canonical(),true
+        else
+            nothing
+        end
+    else
+        println("ERROR@ mode: \"$mode\"")
+        println(" ")
         return iMPS_canonical(),iMPS_canonical(),true
     end
     # biorthonormailization
     bitr = 0
-    if debug
-        println(repeat(" ", indent), "Biortho itr = ", bitr)
+    if mode == "debug"
+        println(repeat(" ", indent+2), "Biortho itr = ", bitr)
         biortho_test(a, b, [1,2,3]; tol=tol, printlog = true, indent=indent+2)
         println(" ")
     end
     while bitr < itr
         bitr += 1
         a, b = biortho_iteration(a, b)           
-        if debug
-            println(repeat(" ", indent), "Biortho itr = ", bitr)
-            println(repeat(" ", indent), "> after biortho")
-            biortho_test(a, b, [1,2,3];tol=tol, printlog = true, indent=indent+2)
-            println(repeat(" ", indent), "> after gauge")
-        end
-        a, b = biortho_gauge(a, b; printlog = debug, indent=indent+2)
-        if debug
-            
-            errorflag = biortho_test(a, b, [1,2,3];tol=tol, printlog = true, indent=indent+2)
+        if mode == "debug"
+            println(repeat(" ", indent+2), "Biortho itr = ", bitr)
+            println(repeat(" ", indent+2), "> after biortho")
+            biortho_test(a, b, [1,2,3];tol=tol, printlog = true, indent=indent+4)
+            println(repeat(" ", indent+2), "> after gauge")
+            a, b = biortho_gauge(a, b; printlog = true, indent=indent+4)
+            errorflag = biortho_test(a, b, [1,2,3];tol=tol, printlog = true, indent=indent+4)
             println(" ")
+        else
+            a, b = biortho_gauge(a, b; printlog = false)
         end
     end
-    # return results
-    if debug
+    # output
+    if mode == "min"
+        println(repeat(" ", indent), "Random biorthonormal iMPS pair w/ bond dim = $χ and physical dim = $D generated in $bitr iteration.")
+        println(" ")
+        return a,b
+    elseif mode == "default"
+        println(repeat(" ", indent), "Random biorthonormal iMPS pair w/ bond dim = $χ and physical dim = $D generated in $bitr iteration.")
+        errorflag = biortho_test(a, b, [1,2,3]; tol=tol, printlog = true, indent=indent+2)
+        println(" ")
         println(repeat(" ", indent), "Done")
         println(" ")
-    elseif printlog == true && debug == false
-        print(repeat(" ", indent), "  After ",bitr," itreration:")
-        errorflag = biortho_test(a, b, [1,2,3];tol=tol, printlog = true, indent=indent+2)
-        println(" ")
+    elseif mode == "debug"
         println(repeat(" ", indent), "Done")
         println(" ")
-    elseif printlog == false && debug == false
-        errorflag = biortho_test(a, b, [1,2,3];tol=tol, printlog = false)
     end
     return a, b, errorflag
 end
 # Biorthonormalize two canonical iMPS
-function biorthonormalize(a::iMPS_canonical, b::iMPS_canonical; tol::Float64 = 1e-6, itr::Int = 1, printlog::Bool = true, debug::Bool = false, indent::Int64 = 0)
-    # χ: bond dimison of MPS
-    # D: bond dimison of transfer operator; physical dimension
+function biorthonormalize(a::iMPS_canonical, b::iMPS_canonical; tol::Float64 = 1e-6, itr::Int = 1, mode::String = "default", indent::Int64 = 0)
     @assert size(a) == size(b)
     χ = size(a)[1]
     D = size(a)[2]
     errorflag = false
-    flag = printlog||debug
-    if flag
+    # output
+    if mode=="min" || mode=="default"
+        nothing
+    elseif mode == "debug"
         println(repeat(" ", indent), "Biorthonormalizing given iMPS w/ bond dim = ",χ, " and physical dim = ",D)
         println(" ")
+    else
+        println("ERROR@ mode: \"$mode\"")
+        println(" ")
+        return a,b,true
     end
     # biorthonormailization
     bitr = 0
-    if debug
-        println(repeat(" ", indent), "Biortho itr = ", bitr)
-        biortho_test(a, b, [1,2,3]; printlog = true,tol=tol,indent=indent+2)
+    if mode == "debug"
+        println(repeat(" ", indent+2), "Biortho itr = ", bitr)
+        biortho_test(a, b, [1,2,3]; printlog = true,tol=tol,indent=indent+4)
         println(" ")
     end
     while bitr < itr
         bitr += 1
         a, b = biortho_iteration(a, b)
-        if debug
-            println(repeat(" ", indent), "Biortho itr = ", bitr)
-            println(repeat(" ", indent), "> after biortho")
-            biortho_test(a, b, [1,2,3]; printlog = true,tol=tol,indent=indent+2)
-            println(repeat(" ", indent), "> after gauge")
-        end
-        a, b = biortho_gauge(a, b; printlog = debug ,indent=indent+2)
-        if debug
-
-            errorflag = biortho_test(a, b, [1,2,3]; printlog = true,tol=tol,indent=indent+2)
+        if mode == "debug"
+            println(repeat(" ", indent+2), "Biortho itr = ", bitr)
+            println(repeat(" ", indent+2), "> after biortho")
+            biortho_test(a, b, [1,2,3]; printlog = true,tol=tol,indent=indent+4)
+            println(repeat(" ", indent+2), "> after gauge")
+            a, b = biortho_gauge(a, b; printlog = true ,indent=indent+4)
+            errorflag = biortho_test(a, b, [1,2,3]; printlog = true,tol=tol,indent=indent+4)
             println(" ")
+        else
+            a, b = biortho_gauge(a, b; printlog = false)
         end
     end
-    # return results
-    if debug
-        println(repeat(" ", indent), "Done")
+    # output
+    if mode == "min"
+        println(repeat(" ", indent), "Given iMPS pair w/ bond dim = ",χ, " and physical dim = ",D," biorthonormalized in $bitr iterations.")
         println(" ")
-    elseif printlog == true && debug == false
-        print(repeat(" ", indent), "  After ",bitr," itreration:")
+        return a,b
+    elseif mode == "default"
+        println(repeat(" ", indent), "Given iMPS pair w/ bond dim = ",χ, " and physical dim = ",D," biorthonormalized in $bitr iterations.")
         errorflag = biortho_test(a, b, [1,2,3]; tol=tol, printlog = true, indent=indent+2)
         println(" ")
         println(repeat(" ", indent), "Done")
         println(" ")
-    elseif printlog == false && debug == false
-        errorflag = biortho_test(a, b, [1,2,3]; tol=tol, printlog = false)
+    elseif mode == "debug"
+        println(repeat(" ", indent), "Done")
+        println(" ")
     end
     return a, b, errorflag
 end
