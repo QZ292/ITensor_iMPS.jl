@@ -140,8 +140,7 @@ function canon_test_flag(a::iMPS_canonical, flag::Int64; printlog::Bool = true, 
         acright = a.center*a.right * delta(inds(a.right)[1],inds(a.center)[2])
         acleft = array(acleft,inds(acleft))
         acright = array(acright,inds(acright))
-        err = acleft-acright
-        err = sqrt(sum(err.^2))
+        err = norm(acleft-acright)
         ortholeft = tensor_three(a.left,-10)
         orthoright = tensor_three(a.right,-20)
         if printlog
@@ -156,7 +155,15 @@ function canon_test_flag(a::iMPS_canonical, flag::Int64; printlog::Bool = true, 
         if printlog
             println(spaces, "• norm center=", norm_c)
         end
-        if abs(norm_c-1)>tol
+        if norm(norm_c-1)>tol
+            errordetect = true
+        end
+    elseif flag == 3
+        ratio = max_offdiag_min_diag(matrix(a.center))
+        if printlog
+            println(spaces, "• diag center=", ratio)
+        end
+        if norm(ratio)<1/tol
             errordetect = true
         end
     else
