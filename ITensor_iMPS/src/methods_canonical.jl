@@ -25,7 +25,19 @@ function canon_iteration(A::ITensor,R::ITensor)
     return AL, Rn, frobenius
 end
 # Generate canonical form random iMPS
-function canonical_initialize(χ::Int, D::Int, name::String = "a"; tol::Float64 = 1e-6, itr::Int = 30, mode::String = "default", indent::Int64 = 0)
+function canonical_initialize(χ::Int, D::Int, name::String = "a"; mode::String = "default", tol::Float64 = 1e-6, itr::Tuple{Int64, Float64} = (30,1e-8))
+    parts = split(mode, '.'; limit=2)
+    mode = parts[1]
+    if length(parts) == 1
+        indent = 0
+    else
+        indent = tryparse(Int, parts[2])
+        if indent === nothing
+            indent = 0
+        else
+            indent = max(indent,0)
+        end
+    end
     # output
     if mode == "min"
         println(repeat(" ", indent), "Random canonical iMPS \"",name,"\" w/ bond dim = ",χ, " and physical dim = ",D, " generated.")
@@ -53,7 +65,7 @@ function canonical_initialize(χ::Int, D::Int, name::String = "a"; tol::Float64 
     # left canonicalization
     indR = [Index(χ, "left"), Index(χ, "r2")]
     MPS_R = ITensor(R_initial, indR)
-    while MPS_error > tol && MPS_iteration < itr
+    while MPS_error > itr[2] && MPS_iteration < itr[1]
         MPS_iteration += 1
         MPS_AL, MPS_R, MPS_error = canon_iteration(MPS_A, MPS_R)
     end
@@ -66,7 +78,7 @@ function canonical_initialize(χ::Int, D::Int, name::String = "a"; tol::Float64 
     ]
     MPS_L_rev = ITensor(R_initial, indL)
     MPS_A_rev = permute(MPS_A, [inds(MPS_A)[3], inds(MPS_A)[2], inds(MPS_A)[1]])
-    while MPS_error > tol && MPS_iteration < itr
+    while MPS_error > itr[2] && MPS_iteration < itr[1]
         MPS_iteration += 1
         MPS_AR_rev, MPS_L_rev, MPS_error = canon_iteration(MPS_A_rev, MPS_L_rev)
     end
@@ -97,10 +109,22 @@ function canonical_initialize(χ::Int, D::Int, name::String = "a"; tol::Float64 
     return mpsA, errordetect
 end
 # Generate canonical form given translational invariant iMPS
-function canonicalize(MPS_A::ITensor; tol::Float64 = 1e-6, itr::Int = 30, mode::String = "default", indent::Int64 = 0)
+function canonicalize(MPS_A::ITensor; mode::String = "default", tol::Float64 = 1e-6, itr::Tuple{Int64, Float64} = (30,1e-8))
     # size
     χ = size(MPS_A)[1]
     @assert size(MPS_A)[1] == size(MPS_A)[3]
+    parts = split(mode, '.'; limit=2)
+    mode = parts[1]
+    if length(parts) == 1
+        indent = 0
+    else
+        indent = tryparse(Int, parts[2])
+        if indent === nothing
+            indent = 0
+        else
+            indent = max(indent,0)
+        end
+    end
     # output
     if mode == "min"
         println(repeat(" ", indent), "Given iMPS w/ bond dim = ",χ, " and physical dim = ",size(MPS_A)[2]," canonicalized")
@@ -126,7 +150,7 @@ function canonicalize(MPS_A::ITensor; tol::Float64 = 1e-6, itr::Int = 30, mode::
     # left canonicalization
     indR = [Index(χ, "left"), Index(χ, "r2")]
     MPS_R = ITensor(R_initial, indR)
-    while MPS_error > tol && MPS_iteration < itr
+    while MPS_error > itr[2] && MPS_iteration < itr[1]
         MPS_iteration += 1
         MPS_AL, MPS_R, MPS_error = canon_iteration(MPS_A, MPS_R)
     end
@@ -139,7 +163,7 @@ function canonicalize(MPS_A::ITensor; tol::Float64 = 1e-6, itr::Int = 30, mode::
     ]
     MPS_L_rev = ITensor(R_initial, indL)
     MPS_A_rev = permute(MPS_A, [inds(MPS_A)[3], inds(MPS_A)[2], inds(MPS_A)[1]])
-    while MPS_error > tol && MPS_iteration < itr
+    while MPS_error > itr[2] && MPS_iteration < itr[1]
         MPS_iteration += 1
         MPS_AR_rev, MPS_L_rev, MPS_error = canon_iteration(MPS_A_rev, MPS_L_rev)
     end
@@ -170,7 +194,19 @@ function canonicalize(MPS_A::ITensor; tol::Float64 = 1e-6, itr::Int = 30, mode::
     return mpsA, errordetect
 end
 # Remove gauge ambiguity
-function canonical_gauge(a::iMPS_canonical; tol::Float64 = 1e-6, mode::String = "default", indent::Int64 = 0)
+function canonical_gauge(a::iMPS_canonical; mode::String = "default", tol::Float64 = 1e-6)
+    parts = split(mode, '.'; limit=2)
+    mode = parts[1]
+    if length(parts) == 1
+        indent = 0
+    else
+        indent = tryparse(Int, parts[2])
+        if indent === nothing
+            indent = 0
+        else
+            indent = max(indent,0)
+        end
+    end
     # output
     if mode == "min"
         println(repeat(" ", indent), "Gauge ambiguity of given iMPS removed.")
