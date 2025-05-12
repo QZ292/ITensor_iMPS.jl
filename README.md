@@ -11,7 +11,7 @@ A light weighted Julia package based on [ITensors.jl](https://github.com/ITensor
 The package is **not** registered. In case you want to use it, please add by Pkg command.
 
 ```julia
-julia> using Pkg; Pkg.add(url="https://github.com/QZ292/ITensor_simple_iMPS.jl.git")
+julia> using Pkg; Pkg.add(url="https://github.com/QZ292/ITensor_simple_iMPS.git")
 julia> using ITensor_iMPS
 ```
 
