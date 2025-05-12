@@ -184,7 +184,7 @@ function canon_test(a::iMPS_canonical, flags::Vector{Int64} = [1,2]; printlog::B
     return errorflag
 end
 # general check
-function checkimps(a::iMPS_canonical, b::Union{iMPS_canonical, Nothing}=nothing; list::Vector{Int64} = [1,2], printlog::Bool = true, tol::Float64 = 1e-3, indent::Int64 = 0)
+function checkimps(a::iMPS_canonical, b::Union{iMPS_canonical, Nothing}=nothing; list::Vector{Int64} = [1,2], tol::Float64 = 1e-3, printlog::Bool = true, indent::Int64 = 0)
     errordetect = false
     if b ≠ nothing    # checking pair
         flags = [1,2,3]
