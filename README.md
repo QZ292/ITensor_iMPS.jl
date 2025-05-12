@@ -47,7 +47,7 @@ typeof(a.left),typeof(a.center),typeof(a.right)
 
 ### Function: size (redefined)
 
-For a $(\chi,D,\chi)-$dimensional MPS, the function returns a Tuple{Int64, Int64}$(\chi,D)$​ while asserting correct shape for all three part of a *iMPS_canonical* variable.
+For a $(\chi,D,\chi)\-$dimensional MPS, the function returns a Tuple{Int64, Int64}$(\chi,D)$​ while asserting correct shape for all three part of a *iMPS_canonical* variable.
 
 ##### Usage:
 
