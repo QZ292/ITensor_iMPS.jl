@@ -16,6 +16,23 @@ julia> using ITensor_iMPS
 ```
 
 ## Function, Usage and Example
+[Mutable Struct: iMPS_canonical](https://github.com/QZ292/ITensor_simple_iMPS#mutable-struct-imps_canonical)
+
+[Function: size](https://github.com/QZ292/ITensor_simple_iMPS#function-size-redefined)
+
+[Function: deepcopy](https://github.com/QZ292/ITensor_simple_iMPS#function-deepcopy-redefined)
+
+[Function: canonical_initialize](https://github.com/QZ292/ITensor_simple_iMPS#function-canonical_initialize)
+
+[Function: canonicalize](https://github.com/QZ292/ITensor_simple_iMPS?tab=readme-ov-file#function-canonicalize)
+
+[Function: canonical_gauge](https://github.com/QZ292/ITensor_simple_iMPS?tab=readme-ov-file#function-canonical_gauge)
+
+[Function: biorthonormal_initialize](https://github.com/QZ292/ITensor_simple_iMPS?tab=readme-ov-file#function-biorthonormal_initialize)
+
+[Function: biorthonormalize](https://github.com/QZ292/ITensor_simple_iMPS?tab=readme-ov-file#function-biorthonormalize)
+
+[Function: checkimps](https://github.com/QZ292/ITensor_simple_iMPS?tab=readme-ov-file#function-checkimps)
 
 ### Mutable Struct: iMPS_canonical
 
