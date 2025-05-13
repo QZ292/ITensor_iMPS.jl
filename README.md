@@ -136,7 +136,7 @@ Generating random canonical iMPS "a" w/ bond dim = 1 and physical dim = 1
 
 ### Function: canonicalize
 
-Return the canonical form of the given translational-invariant iMPS $\dots-A-A-A-\dots$
+Return the canonical form of the given translational-invariant iMPS $\begin{matrix} &&|&&|&&| \\ \dots&-&A&-&A&-&A&-&\dots\end{matrix}$
 
 ##### Usage:
 
